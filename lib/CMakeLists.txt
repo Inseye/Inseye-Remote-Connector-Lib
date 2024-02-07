@@ -2,6 +2,7 @@ set(SOURCES
         remote_connector.cpp
         remote_connector.hpp
         remote_connector.h
+        endianess_helpers.hpp
 )
 add_library(Remote_Connector_Dlib SHARED ${SOURCES})
 
