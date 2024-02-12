@@ -3,6 +3,12 @@ set(SOURCES
         remote_connector.hpp
         remote_connector.h
         endianess_helpers.hpp
+        shared_memory_header.hpp
+        shared_memory_header.cpp
+        version.cpp
+        version.hpp
+        eye_tracker_data_struct.hpp
+        finally.hpp
 )
 add_library(Remote_Connector_Dlib SHARED ${SOURCES})
 
