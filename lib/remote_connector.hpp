@@ -31,7 +31,6 @@
 #include <memory>
 #include <iostream>
 
-extern "C++" {
 namespace inseye {
 
 typedef struct Version {
@@ -246,6 +245,6 @@ class LIB_EXPORT SharedMemoryEyeTrackerReader final {
   bool TryReadNextEyeTrackerData(EyeTrackerDataStruct& out_data) noexcept;
 };
 }  // namespace inseye
-}
+
 #undef LIB_EXPORT
 #endif  // REMOTE_CONNECTOR_HPP
