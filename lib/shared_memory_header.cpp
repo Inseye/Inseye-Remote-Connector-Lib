@@ -6,7 +6,6 @@
 #include <utility>
 #include <windows.h>
 #include "remote_connector.h"
-#include "remote_connector.hpp"
 #include "shared_memory_header.hpp"
 #include "endianess_helpers.hpp"
 #include "version.hpp"
@@ -19,16 +18,17 @@ using patch_version_t = decltype( PackedVersion::patch);
 
 constexpr PackedVersion lowest_supported = {0, 0, 1};
 constexpr PackedVersion highest_supported = {1, 0, 0};
-const Version kLowestSupportedServiceVersion = {
+const inseye::c::Version inseye::c::kLowestSupportedServiceVersion = {
     lowest_supported.major, lowest_supported.minor, lowest_supported.patch
 };
-const Version kHighestSupportedServiceVersion = {
+const inseye::c::Version inseye::c::kHighestSupportedServiceVersion = {
     highest_supported.major, highest_supported.minor, highest_supported.patch
 };
-const inseye::Version inseye::lowest_supported_service_version = {
+
+const inseye::Version inseye::lowestSupportedServiceVersion = {
     lowest_supported.major, lowest_supported.minor, lowest_supported.patch
 };
-const inseye::Version inseye::highest_supported_service_version = {
+const inseye::Version inseye::highestSupportedServiceVersion = {
     highest_supported.major, highest_supported.minor, highest_supported.patch
 };
 
@@ -143,8 +143,8 @@ SharedMemoryHeader* inseye::internal::readHeaderInternal(
     std::stringstream ss;
     ss << "Library doesn't support service in version: " << headerVersion <<
         "lowest supported version is: " <<
-        lowest_supported_service_version;
-    throw CombinedException(ss.str(), kServiceVersionToLow);
+        inseye::lowestSupportedServiceVersion;
+    throw CombinedException(ss.str(), inseye::c::InitializationStatus::kServiceVersionToLow);
   }
   if (headerVersion >= SharedMemoryHeaderV1::minimumVersion && headerVersion <
       SharedMemoryHeaderV1::maximumVersion) {
@@ -155,8 +155,8 @@ SharedMemoryHeader* inseye::internal::readHeaderInternal(
     std::stringstream ss;
     ss << "Library doesn't support service in version: " << headerVersion <<
         ", highest  supported version is: " <<
-        highest_supported_service_version;
-    throw CombinedException(ss.str(), kServiceVersionToHigh);
+        inseye::highestSupportedServiceVersion;
+    throw CombinedException(ss.str(), inseye::c::InitializationStatus::kServiceVersionToHigh);
   }
 }
 

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- new sample project in `c` programming language 
+
+### Removed
+
+- removed `remote_connector.hpp`, all `c++` declarations were moved to [remote_connector.h](./lib/remote_connector.h) 
+
+### Fixed
+
+- the library can be now actually linked into c program (was not possible before)
+
 
 
 ## [0.0.1] - 2024-02-12

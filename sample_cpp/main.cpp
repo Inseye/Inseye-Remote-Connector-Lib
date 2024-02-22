@@ -8,7 +8,6 @@
 #include <thread>
 #include "windows.h"
 #include "remote_connector.h"
-#include "remote_connector.hpp"
 
 static bool run = true;
 
@@ -63,7 +62,7 @@ void print_data(T & eye_tracker_data) {
   std::cout << "Event: " << eye_tracker_data.gaze_event;
 }
 
-void test_cpp_lib() {
+int main(int argc, char *argv[]) {
   using namespace std::chrono_literals;
   try {
     inseye::SharedMemoryEyeTrackerReader reader;
@@ -82,34 +81,4 @@ void test_cpp_lib() {
   catch (inseye::CombinedException& ref){
     std::cout << ref.what() << std::endl;
   }
-}
-
-void test_c_lib() {
-  using namespace std::chrono_literals;
-  SharedMemoryEyeTrackerReader* reader_ptr = nullptr;
-  auto initStatus = CreateEyeTrackerReader(&reader_ptr);
-  if (initStatus != kSuccess)
-  {
-    printf("Failed to initialize eye tracker reader %u\n", initStatus);
-    return;
-  }
-  printf("Reader successfully initialized.\n");
-  inseye::SharedMemoryEyeTrackerReader reader;
-  ::EyeTrackerDataStruct eyeTrackerData;
-  SetConsoleCtrlHandler(CtrlHandler, TRUE);
-  while (run) {
-    if (TryReadLatestEyeTrackerData(reader_ptr, &eyeTrackerData)) {
-      print_data(eyeTrackerData);
-    } else {
-      std::cout << "Failed to read data";
-      std::this_thread::sleep_for(5s);
-    }
-    std::cout << std::endl;
-  }
-  DestroyEyeTrackerReader(&reader_ptr);
-}
-
-int main(int argc, char *argv[]) {
-  // test_c_lib();
-  test_cpp_lib();
 }

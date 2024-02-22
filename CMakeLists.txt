@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(lib)
-add_subdirectory(sample)
+add_subdirectory(sample_cpp)
+add_subdirectory(sample_c)
 
 # USE_FOLDERS group cmake generated projects into one (CMakePredefinedTargets) folder
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

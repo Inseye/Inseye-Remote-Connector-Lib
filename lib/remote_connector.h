@@ -29,72 +29,84 @@
 #endif  // defined(WIN32) || defined(WIN64)
 #endif  // !defined(CALL_CONV)
 
-extern "C" {
+// C only header part
+#ifdef __cplusplus
+#include <string>
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <iostream>
+namespace inseye::c {
+  extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
+#include <assert.h>
 
-enum InitializationStatus {
-  kSuccess,
-  kFailedToAccessSharedResources,
-  kFailedToMapSharedResources,
-  kBufferSmallerThanMinimumHeaderSize,
-  kServiceVersionToLow,
-  kServiceVersionToHigh,
-  kFailure
-};
+  enum InitializationStatus {
+    kSuccess,
+    kFailedToAccessSharedResources,
+    kFailedToMapSharedResources,
+    kBufferSmallerThanMinimumHeaderSize,
+    kServiceVersionToLow,
+    kServiceVersionToHigh,
+    kFailure
+  };
 
-enum GazeEvent : uint32_t {
-  /**
+  enum GazeEvent { //: uint32_t
+    /**
    * Nothing particular happened
    */
-  kNone = 0,
-  /**
+    kNone = 0,
+    /**
    * Left eye is closed or blinked
    */
-  kBlinkLeft = 1 << 0,
-  /**
+    kBlinkLeft = 1 << 0,
+    /**
    * Right eye is closed or blinked
    */
-  kBlinkRight = 1 << 1,
-  /**
+    kBlinkRight = 1 << 1,
+    /**
    * Both eye are closed or both eye performed blink
    */
-  kBlinkBoth = 1 << 2,
-  /**
+    kBlinkBoth = 1 << 2,
+    /**
    * Saccade occurred
    */
-  kSaccade = 1 << 3,
-  /**
+    kSaccade = 1 << 3,
+    /**
    * Headset was put on by the user
    */
-  kHeadsetMount = 1 << 4,
-  /**
+    kHeadsetMount = 1 << 4,
+    /**
    * Headset was put off by the user
    */
-  kHeadsetDismount = 1 << 5,
-  /**
+    kHeadsetDismount = 1 << 5,
+    /**
    * Unknown event that was introduced in later version of service
    */
-  kUnknownGazeEvent = kHeadsetDismount << 1
-};
+    kUnknown = kHeadsetDismount << 1
+  };
+  static_assert(sizeof(enum GazeEvent) == sizeof(uint32_t), "Incompatible type size");
+  static_assert((kBlinkLeft ^ ((uint32_t) 1)) == 0, "Incompatible binary layout");
+  struct SharedMemoryEyeTrackerReader;
 
-struct SharedMemoryEyeTrackerReader;
+  struct Version {
+    const uint32_t major;
+    const uint32_t minor;
+    const uint32_t patch;
+  };
 
-typedef struct Version {
-  const uint32_t major;
-  const uint32_t minor;
-  const uint32_t patch;
-} Version;
+  extern const struct Version kLowestSupportedServiceVersion;
+  extern const struct Version kHighestSupportedServiceVersion;
 
-extern const Version kLowestSupportedServiceVersion;
-extern const Version kHighestSupportedServiceVersion;
-
-typedef struct EyeTrackerDataStruct {
-  /**
+  struct EyeTrackerDataStruct {
+    /**
    * @brief Data creation timestamp in milliseconds since Unix Epoch.
    */
-  uint64_t time;
-  /**
+    uint64_t time;
+    /**
    * @brief Left eye horizontal angle position in radians.
    * Angle is measurement of rotation between vector parallel to user left eye
    * gaze direction and normal vector of device (headset) field of view and
@@ -104,8 +116,8 @@ typedef struct EyeTrackerDataStruct {
    * of user gaze to the right and negative value correspond to the gaze
    * rotation to the left (from user PoV).
    */
-  float left_eye_x;
-  /**
+    float left_eye_x;
+    /**
    * Left eye vertical angle position in radians.
    * Angle is measurement of rotation between vector parallel to user left eye
    * gaze direction and normal vector of device (headset) field of view and
@@ -115,8 +127,8 @@ typedef struct EyeTrackerDataStruct {
    * user gaze up and negative value correspond to the gaze down
    * (from user PoV).
    */
-  float left_eye_y;
-  /**
+    float left_eye_y;
+    /**
    * @brief Right eye horizontal angle position in radians.
    * Angle is measurement of rotation between vector parallel to user right eye
    * gaze direction and normal vector of device (headset) field of view and
@@ -126,8 +138,8 @@ typedef struct EyeTrackerDataStruct {
    * of user gaze to the right and negative value correspond to the gaze
    * rotation to the left (from user PoV).
    */
-  float right_eye_x;
-  /**
+    float right_eye_x;
+    /**
    * @brief Right eye vertical angle position in radians.
    * Angle is measurement of rotation between vector parallel to user left eye
    * gaze direction and normal vector of device (headset) field of view and
@@ -137,47 +149,187 @@ typedef struct EyeTrackerDataStruct {
    * user gaze up and negative value correspond to the gaze down
    * (from user PoV).
    */
-  float right_eye_y;
-  GazeEvent gaze_event;
-} EyeTrackerDataStruct;
+    float right_eye_y;
+    enum GazeEvent gaze_event;
+  };
 
-struct SharedMemoryEyeTrackerReader;
-/**
+  struct SharedMemoryEyeTrackerReader;
+  /**
   * @brief Initializes eye tracker reader and writes memory location of
   * SharedMemoryEyeTrackerReader to dereference pointer_address.
   * @returns Initialization status. Pointer at input address is only populated
   * when function returns kSuccess.
   */
-LIB_EXPORT InitializationStatus CALL_CONV
-CreateEyeTrackerReader(SharedMemoryEyeTrackerReader** pointer_address);
-/**
+  LIB_EXPORT enum InitializationStatus CALL_CONV
+  CreateEyeTrackerReader(struct SharedMemoryEyeTrackerReader** pointer_address);
+  /**
   * @brief Frees all resources allocated during call to CreateEyeTrackerReader
   * and zeroes pointer.
   * @param pointer_address address of pointer to memory allocated with
   * CreateEyeTrackerReader
   */
-LIB_EXPORT void CALL_CONV
-DestroyEyeTrackerReader(SharedMemoryEyeTrackerReader** pointer_address);
+  LIB_EXPORT void CALL_CONV
+  DestroyEyeTrackerReader(struct SharedMemoryEyeTrackerReader** pointer_address);
 
-/**
+  /**
  * @brief Moves internal pointer to latest sample.
  * Then if new data is available the data is read and copied to input param.
  * @param out_data output struct that will be changed on successful read.
  * @return true when data was successfully read, otherwise false
  */
-LIB_EXPORT bool CALL_CONV
-TryReadNextEyeTrackerData(SharedMemoryEyeTrackerReader*, EyeTrackerDataStruct*);
+  LIB_EXPORT bool CALL_CONV TryReadNextEyeTrackerData(
+      struct SharedMemoryEyeTrackerReader*, struct EyeTrackerDataStruct*);
 
-/**
+  /**
  * @brief Checks if there is new data available since last read.
  * Then if new data is available advances internal pointer by one, reads the
  * and the copies to out_data.
  * @param out_data output struct that will be changed on successful read.
  * @return true when data was successfully read, otherwise false
  */
-LIB_EXPORT bool CALL_CONV TryReadLatestEyeTrackerData(
-    SharedMemoryEyeTrackerReader*, EyeTrackerDataStruct*);
-}
+  LIB_EXPORT bool CALL_CONV TryReadLatestEyeTrackerData(
+      struct SharedMemoryEyeTrackerReader*, struct EyeTrackerDataStruct*);
+#ifdef __cplusplus
+  } // namespace inseye:c
+} // extern "C"
+
+// CPP header part
+namespace inseye {
+  using GazeEvent = inseye::c::GazeEvent;
+  using EyeTrackerDataStruct = inseye::c::EyeTrackerDataStruct;
+  struct Version : public inseye::c::Version {
+
+    bool operator==(const inseye::Version& other) const {
+      return !(*this != other);
+    }
+
+    bool operator!=(const inseye::Version& other) const {
+      if (this->major != other.major)
+        return false;
+      if (this->minor != other.minor)
+        return false;
+      if (this->patch != other.patch)
+        return false;
+      return true;
+    }
+
+    bool operator<(const inseye::Version& other) const {
+      if (major < other.major)
+        return true;
+      if (major > other.major)
+        return false;
+      if (minor < other.minor)
+        return true;
+      if (minor > other.minor)
+        return false;
+      return patch < other.patch;
+    }
+
+    bool operator>(const inseye::Version& other) const {
+      return other < *this;
+    }
+
+    bool operator>=(const inseye::Version& other) const {
+      return !(*this < other);
+    }
+
+    bool operator<=(const inseye::Version& other) const {
+      return !(*this > other);
+    }
+
+    inline friend std::ostream& operator<<(std::ostream& os, Version const& p) {
+      os << (long)p.major << "." << (long)p.minor << "."
+         << (long)p.patch;
+      return os;
+    }
+  };
+
+  extern const struct Version lowestSupportedServiceVersion;
+  extern const struct Version highestSupportedServiceVersion;
+
+  inline std::ostream& operator<<(std::ostream& os, GazeEvent event) {
+    switch (event) {
+      case GazeEvent::kNone:
+        os << "None";
+        break;
+      case GazeEvent::kBlinkLeft:
+        os << "Blink Left";
+        break;
+      case GazeEvent::kBlinkRight:
+        os << "Blink Right";
+        break;
+      case GazeEvent::kBlinkBoth:
+        os << "Blink Both";
+        break;
+      case GazeEvent::kSaccade:
+        os << "Saccade";
+        break;
+      case GazeEvent::kHeadsetMount:
+        os << "HeadsetMount";
+        break;
+      case GazeEvent::kHeadsetDismount:
+        os << "HeadsetDismount";
+        break;
+      case GazeEvent::kUnknown:
+        os << "Unknown";
+        break;
+      default:
+        os << "Unknown (Invalid value of: " << (uint32_t)event << ")";
+    }
+    return os;
+  }
+
+  class LIB_EXPORT SharedMemoryEyeTrackerReader final {
+    std::unique_ptr<
+        inseye::c::SharedMemoryEyeTrackerReader,
+        std::function<void(inseye::c::SharedMemoryEyeTrackerReader*)>>
+        implementatation_pointer_;
+
+   public:
+    /**
+  * @brief Initializes eye tracker reader.
+  * @exception inseye::CombinedException thrown when initialization fails.
+  */
+    SharedMemoryEyeTrackerReader();
+
+    SharedMemoryEyeTrackerReader(SharedMemoryEyeTrackerReader&) = delete;
+
+    SharedMemoryEyeTrackerReader(SharedMemoryEyeTrackerReader&&) noexcept;
+    /**
+   * @brief Moves internal pointer to latest sample.
+   * Then if new data is available the data is read and copied to input param.
+   * @param out_data output struct that will be changed on successful read.
+   * @return true when data was successfully read, otherwise false
+   */
+    bool TryReadLatestEyeTrackerData(EyeTrackerDataStruct& out_data) noexcept;
+    /**
+   * @brief Checks if there is new data available since last read.
+   * Then if new data is available advances internal pointer by one, reads the
+   * and the copies to out_data.
+   * @param out_data output struct that will be changed on successful read.
+   * @return true when data was successfully read, otherwise false
+   */
+    bool TryReadNextEyeTrackerData(EyeTrackerDataStruct& out_data) noexcept;
+  };
+
+  class CombinedException final : std::runtime_error {
+    const inseye::c::InitializationStatus status_;
+
+   public:
+    explicit CombinedException(const std::string& message, inseye::c::InitializationStatus status)
+        : runtime_error(message), status_(status) {}
+
+    explicit CombinedException(const char* message, inseye::c::InitializationStatus status)
+        : runtime_error(message), status_(status) {}
+    const char* what() { return std::runtime_error::what(); }
+    /**
+   * @brief Error status code.
+   * @return integral value that corresponds to Initialization status from "remote_connector.h"
+   */
+    [[nodiscard]] const inseye::c::InitializationStatus& GetStatusCode() const { return status_; }
+  };
+} // namespace inseye
 #undef CALL_CONV
 #undef LIB_EXPORT
+#endif
 #endif  // REMOTE_CONNECTOR_H_
