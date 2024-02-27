@@ -88,8 +88,6 @@ namespace inseye::c {
    */
     kUnknown = kHeadsetDismount << 1
   };
-  static_assert(sizeof(enum GazeEvent) == sizeof(uint32_t), "Incompatible type size");
-  static_assert((kBlinkLeft ^ ((uint32_t) 1)) == 0, "Incompatible binary layout");
   struct SharedMemoryEyeTrackerReader;
 
   struct Version {
@@ -190,94 +188,36 @@ namespace inseye::c {
   LIB_EXPORT bool CALL_CONV TryReadLatestEyeTrackerData(
       struct SharedMemoryEyeTrackerReader*, struct EyeTrackerDataStruct*);
 #ifdef __cplusplus
-  } // namespace inseye:c
+  } // namespace inseye:c-
 } // extern "C"
 
 // CPP header part
 namespace inseye {
   using GazeEvent = inseye::c::GazeEvent;
   using EyeTrackerDataStruct = inseye::c::EyeTrackerDataStruct;
-  struct Version : public inseye::c::Version {
+  struct LIB_EXPORT Version : public inseye::c::Version {
 
-    bool operator==(const inseye::Version& other) const {
-      return !(*this != other);
-    }
+    bool operator==(const inseye::Version& other) const;
 
-    bool operator!=(const inseye::Version& other) const {
-      if (this->major != other.major)
-        return false;
-      if (this->minor != other.minor)
-        return false;
-      if (this->patch != other.patch)
-        return false;
-      return true;
-    }
+    bool operator!=(const inseye::Version& other) const;
 
-    bool operator<(const inseye::Version& other) const {
-      if (major < other.major)
-        return true;
-      if (major > other.major)
-        return false;
-      if (minor < other.minor)
-        return true;
-      if (minor > other.minor)
-        return false;
-      return patch < other.patch;
-    }
+    bool operator<(const inseye::Version& other) const;
 
     bool operator>(const inseye::Version& other) const {
       return other < *this;
     }
 
-    bool operator>=(const inseye::Version& other) const {
-      return !(*this < other);
-    }
+    bool operator>=(const inseye::Version& other) const;
 
-    bool operator<=(const inseye::Version& other) const {
-      return !(*this > other);
-    }
+    bool operator<=(const inseye::Version& other) const;
 
-    inline friend std::ostream& operator<<(std::ostream& os, Version const& p) {
-      os << (long)p.major << "." << (long)p.minor << "."
-         << (long)p.patch;
-      return os;
-    }
+    friend std::ostream& operator<<(std::ostream& os, Version const& p);
   };
 
   extern const struct Version lowestSupportedServiceVersion;
   extern const struct Version highestSupportedServiceVersion;
 
-  inline std::ostream& operator<<(std::ostream& os, GazeEvent event) {
-    switch (event) {
-      case GazeEvent::kNone:
-        os << "None";
-        break;
-      case GazeEvent::kBlinkLeft:
-        os << "Blink Left";
-        break;
-      case GazeEvent::kBlinkRight:
-        os << "Blink Right";
-        break;
-      case GazeEvent::kBlinkBoth:
-        os << "Blink Both";
-        break;
-      case GazeEvent::kSaccade:
-        os << "Saccade";
-        break;
-      case GazeEvent::kHeadsetMount:
-        os << "HeadsetMount";
-        break;
-      case GazeEvent::kHeadsetDismount:
-        os << "HeadsetDismount";
-        break;
-      case GazeEvent::kUnknown:
-        os << "Unknown";
-        break;
-      default:
-        os << "Unknown (Invalid value of: " << (uint32_t)event << ")";
-    }
-    return os;
-  }
+  std::ostream& operator<<(std::ostream& os, GazeEvent event);
 
   class LIB_EXPORT SharedMemoryEyeTrackerReader final {
     std::unique_ptr<
