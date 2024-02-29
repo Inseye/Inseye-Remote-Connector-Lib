@@ -14,7 +14,8 @@ constexpr int maximum_pipe_message_length = 1024;
 using buffer_t = std::array<byte, maximum_pipe_message_length>;
 TCHAR named_pipe_name[] = TEXT("\\\\.\\pipe\\inseye.desktop-service");
 DWORD pipe_mode = PIPE_READMODE_MESSAGE;
-thread_local char inseye::c::kErrorDescription[1024];
+
+char inseye::c::kErrorDescription[1024];
 using namespace inseye::internal;
 
 

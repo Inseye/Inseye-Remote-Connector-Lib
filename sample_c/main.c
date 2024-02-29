@@ -59,11 +59,12 @@ void print_data(struct InseyeEyeTrackerDataStruct*eye_tracker_data) {
 }
 
 int main() {
+  printf("max version %d.%d.%d\n", kHighestSupportedServiceVersion.major, kHighestSupportedServiceVersion.minor, kHighestSupportedServiceVersion.patch);
   struct InseyeSharedMemoryEyeTrackerReader* reader_ptr = NULL;
-  enum InitializationStatus initStatus = CreateEyeTrackerReader(&reader_ptr);
+  enum InseyeInitializationStatus initStatus = CreateEyeTrackerReader(&reader_ptr, -1);
   if (initStatus != kSuccess)
   {
-    printf("Failed to initialize eye tracker reader %u\n", initStatus);
+    printf("Failed to initialize eye tracker reader %u\n%s", initStatus, kErrorDescription);
     return 1;
   }
   printf("Reader successfully initialized.\n");

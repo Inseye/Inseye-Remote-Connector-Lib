@@ -98,9 +98,9 @@ namespace inseye::c {
     const uint32_t minor;
     const uint32_t patch;
   };
-  extern thread_local char kErrorDescription[1024];
-  extern const struct InseyeVersion kLowestSupportedServiceVersion;
-  extern const struct InseyeVersion kHighestSupportedServiceVersion;
+  extern char LIB_EXPORT kErrorDescription[1024];
+  extern const LIB_EXPORT struct InseyeVersion kLowestSupportedServiceVersion;
+  extern const LIB_EXPORT struct InseyeVersion kHighestSupportedServiceVersion;
 
   struct InseyeEyeTrackerDataStruct {
     /**
