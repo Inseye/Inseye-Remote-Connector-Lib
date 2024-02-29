@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cmath>
 #include <format>
-#include <mutex>
 #include <thread>
 
 #include "exceptions.hpp"
@@ -26,16 +25,6 @@ struct inseye::c::InseyeSharedMemoryEyeTrackerReader {
   inseye::internal::NamedPipeCommunicator named_pipe_communicator;
   std::unique_ptr<inseye::internal::SharedMemoryHeader> shared_memory_header =
       nullptr;
-};
-
-struct inseye::c::InseyeAsyncOperation {
-  std::mutex mutex;
-  bool consumed;
-  inseye::c::InseyeInitializationStatus initializationStatus;
-  inseye::c::InseyeSharedMemoryEyeTrackerReader* reader;
-  std::thread thread;
-  void (*callback)(struct InseyeAsyncOperation*, void*);
-  void* state;
 };
 
 inline uint32_t CalculateEyeTrackerDataMemoryOffset(
@@ -292,32 +281,5 @@ bool inseye::c::TryReadLatestEyeTrackerData(
       (std::max)(implementation->lastSampleIndex, latest_written - 1);
   return TryReadNextDataSampleInternal(*implementation, *data_struct, 0);
 }
-
-//inseye::c::InseyeAsyncOperation* inseye::c::BeginCreateEyeTrackerReader(
-//    void (*callback)(struct InseyeAsyncOperation*, void*),
-//    void* state) {
-//  auto* handle  = new inseye::c::InseyeAsyncOperation{.reader = nullptr, .callback = callback,  .state = state};
-//  handle->thread = std::thread([handle] {
-//     try {
-//
-//       handle->callback(handle, handle->state);
-//     }
-//     catch (...) {
-//
-//     }
-//  });
-//  return handle;
-//}
-
-//enum inseye::c::InseyeInitializationStatus inseye::c::EndCreateEyeTrackerReader(
-//    struct InseyeAsyncOperation* async_operation,
-//    struct inseye::c::InseyeSharedMemoryEyeTrackerReader** pointer_address) {
-//  if (async_operation == nullptr) {
-//    write_error_message(exc_msg("Async operation is nullptr"));
-//    return inseye::c::InseyeInitializationStatus::kFailure;
-//  }
-//  async_operation->thread.join();
-//
-//}
 
 }  // namespace inseye

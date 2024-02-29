@@ -164,42 +164,7 @@ namespace inseye::c {
     kInsAsyncFaulted = 4,
     kInsCompleted = 5
   };
-  struct InseyeAsyncOperation;
-
   /**
-   * @brief Begins asynchronous operation in a new thread that creates new eye tracker reader.
-   * @param callback callback that will be invoked when asynchronous operation finishes. Can be nullptr.
-   * @param state pointer to state that should be passed to callback
-   * @return pointer that to memory that holds information about
-   */
-  LIB_EXPORT struct InseyeAsyncOperation* CALL_CONV BeginCreateEyeTrackerReader(void (*callback)(struct InseyeAsyncOperation* status, void* state), void* state);
-  /**
-   * @brief Waits for the pending asynchronous read operation to complete.
-   * @param pointer_address
-   * @return Initialization status. Pointer at input address is only populated
-   * when function returns kSuccess.
-   */
-  LIB_EXPORT enum InseyeInitializationStatus CALL_CONV
-  EndCreateEyeTrackerReader(
-      struct InseyeAsyncOperation* async_operation,
-      struct InseyeSharedMemoryEyeTrackerReader** pointer_address);
-  /**
-   * @brief Cancels asynchronous operation that attempts to create eye trackers.
-   * @param status asynchronous operation status
-   * @return Initialization status. Pointer at input address is only populated
-   * when function returns kSuccess.
-   */
-  LIB_EXPORT bool CALL_CONV CancelCreateEyeTrackerReader(struct InseyeAsyncOperationHandle* status);
-  /**
-   * @brief
-   * @param pointer address of pointer to
-   */
-  LIB_EXPORT void CALL_CONV FreeAsyncOperationHandle(InseyeAsyncOperationHandle** handle_pointer);
-
-  LIB_EXPORT char* CALL_CONV GetErrorDescription(InseyeAsyncOperationHandle* handle);
-
-  LIB_EXPORT InseyeAsyncOperationState CALL_CONV GetAsyncOperationState(InseyeAsyncOperationHandle* handle);
-      /**
   * @brief Initializes eye tracker reader and writes memory location of
   * SharedMemoryEyeTrackerReader to dereference pointer_address.
   * @param pointer_address address of pointer which will hold information about created
