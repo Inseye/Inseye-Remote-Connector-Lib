@@ -18,15 +18,7 @@ namespace inseye::internal {
         [[nodiscard]] virtual const uint32_t & GetBufferSize() const = 0;
     };
 
-    enum class HeaderReadResult {
-        SUCCESS,
-        BUFFER_SMALLER_THAN_HEADER_SIZE_TYPE,
-        BUFFER_SMALLER_THAN_MINIMUM_HEADER_SIZE,
-        SERVICE_DATA_FORMAT_VERSION_TO_HIGH,
-        SERVICE_DATA_FORMAT_VERSION_TO_LOW
-    };
-
-    SharedMemoryHeader *readHeaderInternal(HANDLE);
+    SharedMemoryHeader * ReadHeaderInternal(HANDLE share_file_handle);
 }
 
 

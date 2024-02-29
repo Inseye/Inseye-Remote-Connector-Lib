@@ -6,6 +6,8 @@ set(SOURCES
         shared_memory_header.cpp
         version.hpp
         eye_tracker_data_struct.hpp
+        named_pipe_communicator.cpp
+        named_pipe_communicator.hpp
 )
 add_library(Remote_Connector_Dlib SHARED ${SOURCES})
 

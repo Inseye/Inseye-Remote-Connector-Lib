@@ -5,8 +5,10 @@
 #ifndef VERSION_HPP
 #define VERSION_HPP
 #include <cstdint>
+#include "endianess_helpers.hpp"
 
 namespace inseye::internal {
+
 #pragma pack(push, 1)
     struct PackedVersion {
         uint32_t major;

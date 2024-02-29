@@ -44,62 +44,65 @@ namespace inseye::c {
 #include <stdint.h>
 #include <assert.h>
 
-  enum InitializationStatus {
+  enum InseyeInitializationStatus {
     kSuccess,
     kFailedToAccessSharedResources,
     kFailedToMapSharedResources,
-    kBufferSmallerThanMinimumHeaderSize,
+    kInsFailedToInitializeNamedPipe,
+    kInternalError,
     kServiceVersionToLow,
     kServiceVersionToHigh,
+    kCancelled,
+    kTimeout,
     kFailure
   };
 
-  enum GazeEvent { //: uint32_t
+  enum InseyeGazeEvent { //: uint32_t
     /**
    * Nothing particular happened
    */
-    kNone = 0,
+    kInsGazeNone = 0,
     /**
    * Left eye is closed or blinked
    */
-    kBlinkLeft = 1 << 0,
+    kInsGazeBlinkLeft = 1 << 0,
     /**
    * Right eye is closed or blinked
    */
-    kBlinkRight = 1 << 1,
+    kInsGazeBlinkRight = 1 << 1,
     /**
    * Both eye are closed or both eye performed blink
    */
-    kBlinkBoth = 1 << 2,
+    kInsGazeBlinkBoth = 1 << 2,
     /**
    * Saccade occurred
    */
-    kSaccade = 1 << 3,
+    kInsGazeSaccade = 1 << 3,
     /**
    * Headset was put on by the user
    */
-    kHeadsetMount = 1 << 4,
+    kInsGazeHeadsetMount = 1 << 4,
     /**
    * Headset was put off by the user
    */
-    kHeadsetDismount = 1 << 5,
+    kInsGazeHeadsetDismount = 1 << 5,
     /**
    * Unknown event that was introduced in later version of service
    */
-    kUnknown = kHeadsetDismount << 1
+    kUnknown = kInsGazeHeadsetDismount << 1
   };
-  struct SharedMemoryEyeTrackerReader;
+  struct InseyeSharedMemoryEyeTrackerReader;
 
-  struct Version {
+  struct InseyeVersion {
     const uint32_t major;
     const uint32_t minor;
     const uint32_t patch;
   };
+  extern thread_local char kErrorDescription[1024];
+  extern const struct InseyeVersion kLowestSupportedServiceVersion;
+  extern const struct InseyeVersion kHighestSupportedServiceVersion;
 
-  extern const struct Version kLowestSupportedServiceVersion;
-  extern const struct Version kHighestSupportedServiceVersion;
-
-  struct EyeTrackerDataStruct {
+  struct InseyeEyeTrackerDataStruct {
     /**
    * @brief Data creation timestamp in milliseconds since Unix Epoch.
    */
@@ -148,18 +151,65 @@ namespace inseye::c {
    * (from user PoV).
    */
     float right_eye_y;
-    enum GazeEvent gaze_event;
+    enum InseyeGazeEvent gaze_event;
   };
 
-  struct SharedMemoryEyeTrackerReader;
+  struct InseyeSharedMemoryEyeTrackerReader;
+
+  enum InseyeAsyncOperationState {
+    kInsAsyncCreated = 0,
+    kInsAsyncRunning = 1,
+    kInsAsyncCancelling = 2,
+    kInsAsyncCancelled = 3,
+    kInsAsyncFaulted = 4,
+    kInsCompleted = 5
+  };
+  struct InseyeAsyncOperation;
+
   /**
+   * @brief Begins asynchronous operation in a new thread that creates new eye tracker reader.
+   * @param callback callback that will be invoked when asynchronous operation finishes. Can be nullptr.
+   * @param state pointer to state that should be passed to callback
+   * @return pointer that to memory that holds information about
+   */
+  LIB_EXPORT struct InseyeAsyncOperation* CALL_CONV BeginCreateEyeTrackerReader(void (*callback)(struct InseyeAsyncOperation* status, void* state), void* state);
+  /**
+   * @brief Waits for the pending asynchronous read operation to complete.
+   * @param pointer_address
+   * @return Initialization status. Pointer at input address is only populated
+   * when function returns kSuccess.
+   */
+  LIB_EXPORT enum InseyeInitializationStatus CALL_CONV
+  EndCreateEyeTrackerReader(
+      struct InseyeAsyncOperation* async_operation,
+      struct InseyeSharedMemoryEyeTrackerReader** pointer_address);
+  /**
+   * @brief Cancels asynchronous operation that attempts to create eye trackers.
+   * @param status asynchronous operation status
+   * @return Initialization status. Pointer at input address is only populated
+   * when function returns kSuccess.
+   */
+  LIB_EXPORT bool CALL_CONV CancelCreateEyeTrackerReader(struct InseyeAsyncOperationHandle* status);
+  /**
+   * @brief
+   * @param pointer address of pointer to
+   */
+  LIB_EXPORT void CALL_CONV FreeAsyncOperationHandle(InseyeAsyncOperationHandle** handle_pointer);
+
+  LIB_EXPORT char* CALL_CONV GetErrorDescription(InseyeAsyncOperationHandle* handle);
+
+  LIB_EXPORT InseyeAsyncOperationState CALL_CONV GetAsyncOperationState(InseyeAsyncOperationHandle* handle);
+      /**
   * @brief Initializes eye tracker reader and writes memory location of
   * SharedMemoryEyeTrackerReader to dereference pointer_address.
+  * @param pointer_address address of pointer which will hold information about created
+  * shared memory tracker reader memory
+  * @param timeout_ms maximum time the function can wait until aborts and returns unsuccessfully
   * @returns Initialization status. Pointer at input address is only populated
   * when function returns kSuccess.
   */
-  LIB_EXPORT enum InitializationStatus CALL_CONV
-  CreateEyeTrackerReader(struct SharedMemoryEyeTrackerReader** pointer_address);
+  LIB_EXPORT enum InseyeInitializationStatus CALL_CONV
+  CreateEyeTrackerReader(struct InseyeSharedMemoryEyeTrackerReader** pointer_address, uint32_t timeout_ms);
   /**
   * @brief Frees all resources allocated during call to CreateEyeTrackerReader
   * and zeroes pointer.
@@ -167,7 +217,7 @@ namespace inseye::c {
   * CreateEyeTrackerReader
   */
   LIB_EXPORT void CALL_CONV
-  DestroyEyeTrackerReader(struct SharedMemoryEyeTrackerReader** pointer_address);
+  DestroyEyeTrackerReader(struct InseyeSharedMemoryEyeTrackerReader** pointer_address);
 
   /**
  * @brief Moves internal pointer to latest sample.
@@ -176,7 +226,7 @@ namespace inseye::c {
  * @return true when data was successfully read, otherwise false
  */
   LIB_EXPORT bool CALL_CONV TryReadNextEyeTrackerData(
-      struct SharedMemoryEyeTrackerReader*, struct EyeTrackerDataStruct*);
+      struct InseyeSharedMemoryEyeTrackerReader*, struct InseyeEyeTrackerDataStruct*);
 
   /**
  * @brief Checks if there is new data available since last read.
@@ -186,16 +236,16 @@ namespace inseye::c {
  * @return true when data was successfully read, otherwise false
  */
   LIB_EXPORT bool CALL_CONV TryReadLatestEyeTrackerData(
-      struct SharedMemoryEyeTrackerReader*, struct EyeTrackerDataStruct*);
+      struct InseyeSharedMemoryEyeTrackerReader*, struct InseyeEyeTrackerDataStruct*);
 #ifdef __cplusplus
   } // namespace inseye:c-
 } // extern "C"
 
 // CPP header part
 namespace inseye {
-  using GazeEvent = inseye::c::GazeEvent;
-  using EyeTrackerDataStruct = inseye::c::EyeTrackerDataStruct;
-  struct LIB_EXPORT Version : public inseye::c::Version {
+  using GazeEvent = inseye::c::InseyeGazeEvent;
+  using EyeTrackerDataStruct = inseye::c::InseyeEyeTrackerDataStruct;
+  struct LIB_EXPORT Version : public inseye::c::InseyeVersion {
 
     bool operator==(const inseye::Version& other) const;
 
@@ -203,9 +253,7 @@ namespace inseye {
 
     bool operator<(const inseye::Version& other) const;
 
-    bool operator>(const inseye::Version& other) const {
-      return other < *this;
-    }
+    bool operator>(const inseye::Version& other) const;
 
     bool operator>=(const inseye::Version& other) const;
 
@@ -221,16 +269,27 @@ namespace inseye {
 
   class LIB_EXPORT SharedMemoryEyeTrackerReader final {
     std::unique_ptr<
-        inseye::c::SharedMemoryEyeTrackerReader,
-        std::function<void(inseye::c::SharedMemoryEyeTrackerReader*)>>
+        inseye::c::InseyeSharedMemoryEyeTrackerReader,
+        std::function<void(inseye::c::InseyeSharedMemoryEyeTrackerReader*)>>
         implementatation_pointer_;
 
    public:
+    SharedMemoryEyeTrackerReader() = delete;
     /**
-  * @brief Initializes eye tracker reader.
-  * @exception inseye::CombinedException thrown when initialization fails.
-  */
-    SharedMemoryEyeTrackerReader();
+    * @brief Initializes eye tracker reader.
+    */
+    explicit SharedMemoryEyeTrackerReader(int32_t timeout_ms) {
+      inseye::c::InseyeSharedMemoryEyeTrackerReader* ptr = nullptr;
+      if (CreateEyeTrackerReader(&ptr, timeout_ms) != inseye::c::InseyeInitializationStatus::kSuccess) {
+        throw std::runtime_error(inseye::c::kErrorDescription);
+      }
+      static auto destructor = [](inseye::c::InseyeSharedMemoryEyeTrackerReader* p) {
+        inseye::c::DestroyEyeTrackerReader(&p);
+      };
+      implementatation_pointer_ =
+          std::unique_ptr<inseye::c::InseyeSharedMemoryEyeTrackerReader, decltype(destructor)>{
+              ptr, destructor};
+    }
 
     SharedMemoryEyeTrackerReader(SharedMemoryEyeTrackerReader&) = delete;
 
@@ -250,23 +309,6 @@ namespace inseye {
    * @return true when data was successfully read, otherwise false
    */
     bool TryReadNextEyeTrackerData(EyeTrackerDataStruct& out_data) noexcept;
-  };
-
-  class CombinedException final : std::runtime_error {
-    const inseye::c::InitializationStatus status_;
-
-   public:
-    explicit CombinedException(const std::string& message, inseye::c::InitializationStatus status)
-        : runtime_error(message), status_(status) {}
-
-    explicit CombinedException(const char* message, inseye::c::InitializationStatus status)
-        : runtime_error(message), status_(status) {}
-    const char* what() { return std::runtime_error::what(); }
-    /**
-   * @brief Error status code.
-   * @return integral value that corresponds to Initialization status from "remote_connector.h"
-   */
-    [[nodiscard]] const inseye::c::InitializationStatus& GetStatusCode() const { return status_; }
   };
 } // namespace inseye
 #undef CALL_CONV

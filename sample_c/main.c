@@ -48,7 +48,7 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
   }
 }
 
-void print_data(struct EyeTrackerDataStruct *eye_tracker_data) {
+void print_data(struct InseyeEyeTrackerDataStruct*eye_tracker_data) {
   printf("Successfully read data\n");
   printf("Time: %llu\n", eye_tracker_data->time);
   printf("Left X: %f\n", eye_tracker_data->left_eye_x);
@@ -59,7 +59,7 @@ void print_data(struct EyeTrackerDataStruct *eye_tracker_data) {
 }
 
 int main() {
-  struct SharedMemoryEyeTrackerReader* reader_ptr = NULL;
+  struct InseyeSharedMemoryEyeTrackerReader* reader_ptr = NULL;
   enum InitializationStatus initStatus = CreateEyeTrackerReader(&reader_ptr);
   if (initStatus != kSuccess)
   {
@@ -67,7 +67,7 @@ int main() {
     return 1;
   }
   printf("Reader successfully initialized.\n");
-  struct EyeTrackerDataStruct eyeTrackerData;
+  struct InseyeEyeTrackerDataStruct eyeTrackerData;
   SetConsoleCtrlHandler(CtrlHandler, TRUE);
   while (run) {
     if (TryReadLatestEyeTrackerData(reader_ptr, &eyeTrackerData)) {

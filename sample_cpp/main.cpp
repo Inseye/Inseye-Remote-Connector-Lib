@@ -65,7 +65,12 @@ void print_data(T & eye_tracker_data) {
 int main(int argc, char *argv[]) {
   using namespace std::chrono_literals;
   try {
-    inseye::SharedMemoryEyeTrackerReader reader;
+    inseye::Version ver1{0, 0, 1};
+    inseye::Version ver2{0, 0, 2};
+//    if (ver1 < ver2)
+//      std::cout << "Fail";
+
+    inseye::SharedMemoryEyeTrackerReader reader(-1);
     inseye::EyeTrackerDataStruct eyeTrackerData;
     SetConsoleCtrlHandler(CtrlHandler, TRUE);
     while (run) {
@@ -78,7 +83,7 @@ int main(int argc, char *argv[]) {
       std::cout << std::endl;
     }
   }
-  catch (inseye::CombinedException& ref){
+  catch (std::runtime_error& ref){
     std::cout << ref.what() << std::endl;
   }
 }

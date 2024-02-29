@@ -23,22 +23,28 @@ typedef struct EyeTrackerDataStruct {
 inline void readDataSample(LPBYTE offsetedMemory, inseye::EyeTrackerDataStruct& dataStruct) {
   using time_t = decltype(EyeTrackerDataStruct::time);
   using pos_t = decltype(EyeTrackerDataStruct::left_eye_x);
-  dataStruct.time = read_swap_endianes_if_needed<time_t>(
+  dataStruct.time =
+      read_swap_endianess_if_needed<time_t>(
       reinterpret_cast<time_t*>(offsetedMemory + offsetof(
                                                      EyeTrackerDataStruct, time)));
-  dataStruct.left_eye_x = read_swap_endianes_if_needed<pos_t>(
+  dataStruct.left_eye_x =
+      read_swap_endianess_if_needed<pos_t>(
       reinterpret_cast<pos_t*>(offsetedMemory + offsetof(
                                                     EyeTrackerDataStruct, left_eye_x)));
-  dataStruct.left_eye_y = read_swap_endianes_if_needed<pos_t>(
+  dataStruct.left_eye_y =
+      read_swap_endianess_if_needed<pos_t>(
       reinterpret_cast<pos_t*>(offsetedMemory + offsetof(
                                                     EyeTrackerDataStruct, left_eye_y)));
-  dataStruct.right_eye_x = read_swap_endianes_if_needed<pos_t>(
+  dataStruct.right_eye_x =
+      read_swap_endianess_if_needed<pos_t>(
       reinterpret_cast<pos_t*>(offsetedMemory + offsetof(
                                                     EyeTrackerDataStruct, right_eye_x)));
-  dataStruct.right_eye_y = read_swap_endianes_if_needed<pos_t>(
+  dataStruct.right_eye_y =
+      read_swap_endianess_if_needed<pos_t>(
       reinterpret_cast<pos_t*>(offsetedMemory + offsetof(
                                                     EyeTrackerDataStruct, right_eye_y)));
-  uint32_t read_value = read_swap_endianes_if_needed<uint32_t>(
+  auto read_value =
+      read_swap_endianess_if_needed<uint32_t>(
     reinterpret_cast<uint32_t *>(offsetedMemory + offsetof(inseye::EyeTrackerDataStruct, gaze_event)));
   if (read_value >= static_cast<uint32_t>(GazeEvent::kUnknown)) // last value in enum
     read_value = static_cast<uint32_t>(GazeEvent::kUnknown);

@@ -6,22 +6,18 @@
 #include <utility>
 #include <windows.h>
 #include "remote_connector.h"
+#include "exceptions.hpp"
 #include "shared_memory_header.hpp"
 #include "endianess_helpers.hpp"
 #include "version.hpp"
 
 using namespace inseye::internal;
-constexpr uint32_t MINIMUM_HEADER_METADATA_SIZE = sizeof(PackedVersion);
-using major_version_t = decltype( PackedVersion::major);
-using minor_version_t = decltype( PackedVersion::minor);
-using patch_version_t = decltype( PackedVersion::patch);
-
 constexpr PackedVersion lowest_supported = {0, 0, 1};
 constexpr PackedVersion highest_supported = {1, 0, 0};
-const inseye::c::Version inseye::c::kLowestSupportedServiceVersion = {
+const inseye::c::InseyeVersion inseye::c::kLowestSupportedServiceVersion = {
     lowest_supported.major, lowest_supported.minor, lowest_supported.patch
 };
-const inseye::c::Version inseye::c::kHighestSupportedServiceVersion = {
+const inseye::c::InseyeVersion inseye::c::kHighestSupportedServiceVersion = {
     highest_supported.major, highest_supported.minor, highest_supported.patch
 };
 
@@ -92,9 +88,12 @@ SharedMemoryHeaderV1* createSharedMemoryHeaderV1(HANDLE shared_memory_handle, co
       [](const InMemoryV1* cleaned) -> void {
         UnmapViewOfFile(cleaned);
       });
-  auto buffer_size = read_swap_endianes_if_needed<uint32_t>(&mapped_memory->buffer_size);
-  auto header_size = read_swap_endianes_if_needed<uint32_t>(&mapped_memory->header_size);
-  auto sample_size = read_swap_endianes_if_needed<uint32_t>(&mapped_memory->sample_size);
+  auto buffer_size =
+      read_swap_endianess_if_needed<uint32_t>(&mapped_memory->buffer_size);
+  auto header_size =
+      read_swap_endianess_if_needed<uint32_t>(&mapped_memory->header_size);
+  auto sample_size =
+      read_swap_endianess_if_needed<uint32_t>(&mapped_memory->sample_size);
   return new SharedMemoryHeaderV1(std::move(mapped_memory), version,
       header_size,
       sample_size,
@@ -119,7 +118,7 @@ SharedMemoryHeaderV1::SharedMemoryHeaderV1(
         header_size_(header_size), sample_size_(sample_size),
         buffer_size_(buffer_size), total_samples_count_(total_samples_count) {}
 
-SharedMemoryHeader* inseye::internal::readHeaderInternal(
+SharedMemoryHeader* inseye::internal::ReadHeaderInternal(
     HANDLE share_file_handle) {
   // map as little memory as required
   auto memory = static_cast<LPBYTE>(MapViewOfFile(
@@ -127,16 +126,9 @@ SharedMemoryHeader* inseye::internal::readHeaderInternal(
       FILE_MAP_READ,
       0, 0, sizeof(PackedVersion)));
   // check header version
+  const PackedVersion packedVersion = read_swap_endianess_if_needed(reinterpret_cast<PackedVersion*>(memory));
   const Version headerVersion = {
-      read_swap_endianes_if_needed<major_version_t>(
-          reinterpret_cast<major_version_t*>(memory + offsetof(
-                                                 PackedVersion, major))),
-      read_swap_endianes_if_needed<minor_version_t>(
-          reinterpret_cast<minor_version_t*>(memory + offsetof(
-                                                 PackedVersion, minor))),
-      read_swap_endianes_if_needed<patch_version_t>(
-          reinterpret_cast<patch_version_t*>(memory + offsetof(
-                                                 PackedVersion, patch)))
+      packedVersion.major, packedVersion.minor, packedVersion.patch
   };
   UnmapViewOfFile(memory);
   if (headerVersion < SharedMemoryHeaderV1::minimumVersion) {
@@ -144,25 +136,22 @@ SharedMemoryHeader* inseye::internal::readHeaderInternal(
     ss << "Library doesn't support service in version: " << headerVersion <<
         "lowest supported version is: " <<
         inseye::lowestSupportedServiceVersion;
-    throw CombinedException(ss.str(), inseye::c::InitializationStatus::kServiceVersionToLow);
+    throw_initialization(ss.str(), inseye::c::InseyeInitializationStatus::kServiceVersionToLow);
   }
-  if (headerVersion >= SharedMemoryHeaderV1::minimumVersion && headerVersion <
+  if (headerVersion < SharedMemoryHeaderV1::minimumVersion && headerVersion >=
       SharedMemoryHeaderV1::maximumVersion) {
-    return reinterpret_cast<SharedMemoryHeader*>(createSharedMemoryHeaderV1(share_file_handle, headerVersion));
-  }
-  // Add new ifs there when new data formats are added
-  else {
     std::stringstream ss;
     ss << "Library doesn't support service in version: " << headerVersion <<
         ", highest  supported version is: " <<
         inseye::highestSupportedServiceVersion;
-    throw CombinedException(ss.str(), inseye::c::InitializationStatus::kServiceVersionToHigh);
+    throw_initialization(ss.str(), inseye::c::InseyeInitializationStatus::kServiceVersionToHigh);
   }
+  return reinterpret_cast<SharedMemoryHeader*>(createSharedMemoryHeaderV1(share_file_handle, headerVersion));
 }
 
 uint32_t SharedMemoryHeaderV1::ReadSamplesWrittenCount() const {
   auto samples_written = header_memory_->samples_written;
-  return read_swap_endianes_if_needed<decltype(samples_written)>(&samples_written);
+  return read_swap_endianess_if_needed<decltype(samples_written)>(&samples_written);
 }
 
 const uint32_t& SharedMemoryHeaderV1::GetHeaderSize() const {
