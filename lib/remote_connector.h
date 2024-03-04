@@ -203,7 +203,7 @@ namespace inseye::c {
   LIB_EXPORT bool CALL_CONV TryReadLatestEyeTrackerData(
       struct InseyeSharedMemoryEyeTrackerReader*, struct InseyeEyeTrackerDataStruct*);
 #ifdef __cplusplus
-  } // namespace inseye:c-
+  } // namespace inseye::c
 } // extern "C"
 
 // CPP header part

@@ -120,7 +120,7 @@ NamedPipeCommunicator NamedPipeCommunicator::Create(
                  0,                             // dwFlagsAndAttributes
                  nullptr                        // hTemplateFile
                  ),
-      [](auto ptr) { CloseHandle(ptr); });
+      [](auto ptr) { if (ptr != INVALID_HANDLE_VALUE) CloseHandle(ptr); });
   ThrowIfCancellationRequested(should_cancel_function);
   if (pipe_handle.get() == INVALID_HANDLE_VALUE)
     throw_initialization(
