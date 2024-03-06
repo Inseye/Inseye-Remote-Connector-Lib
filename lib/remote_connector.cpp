@@ -64,7 +64,7 @@ bool TryReadNextDataSampleInternal(
       commonData.lastSampleIndex,
       commonData.shared_memory_header->GetSampleCount());
   assert(offset + sampleSize <=
-         commonData.shared_memory_header->GetBufferSize());
+                commonData.shared_memory_header->GetBufferSize());
   inseye::internal::readDataSample(commonData.in_memory_buffer_pointer.get() + offset,
                                    dataStruct);
   // check post read if data just read was not overwritten

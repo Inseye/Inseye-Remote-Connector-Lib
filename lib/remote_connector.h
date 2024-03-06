@@ -42,7 +42,6 @@ namespace inseye::c {
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <assert.h>
 
   enum InseyeInitializationStatus {
     kSuccess,

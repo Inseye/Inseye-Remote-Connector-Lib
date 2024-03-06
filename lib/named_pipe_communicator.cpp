@@ -41,8 +41,8 @@ concept WritableMessage = requires(T impl, buffer_t  destination) {
 typedef struct ServiceInfoResponse {
   const NamedPipeMessageType message_type =
       NamedPipeMessageType::ServiceInfoResponse;
-  inseye::internal::PackedVersion version;
-  std::array<char, maximum_pipe_message_length - sizeof(NamedPipeMessageType) - sizeof(PackedVersion)> shared_memory_path;
+  inseye::internal::PackedVersion version {0, 0, 0};
+  std::array<char, maximum_pipe_message_length - sizeof(NamedPipeMessageType) - sizeof(PackedVersion)> shared_memory_path { '\0'};
   static const NamedPipeMessageType ExpectedMessageType = NamedPipeMessageType::ServiceInfoResponse;
   void ReadFrom(const buffer_t &buffer) {
     auto naked_pointer = buffer.data() + offsetof(ServiceInfoResponse, message_type);
