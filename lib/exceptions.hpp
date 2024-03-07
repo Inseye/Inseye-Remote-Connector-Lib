@@ -10,9 +10,7 @@
 #include <cstring>
 #include "remote_connector.h"
 
-using internal_exception_type = inseye::c::InseyeInitializationStatus;
-
-class InitializationException : std::exception {
+class InitializationException : public std::exception {
  public:
   const inseye::c::InseyeInitializationStatus status;
   explicit InitializationException(inseye::c::InseyeInitializationStatus status) : status(status) {}
@@ -41,8 +39,13 @@ inline inseye::c::InseyeInitializationStatus throw_initialization(const std::str
 }
 
 inline void ThrowIfCancellationRequested(const std::function<bool ()> &is_cancellation_requested) {
+  static const std::string cancelled = "Cancelled";
   if (is_cancellation_requested()) {
-    std::strcpy(inseye::c::kErrorDescription, "Cancelled");
+    int i = 0;
+    for (; i < cancelled.length(); ++i) {
+      inseye::c::kErrorDescription[i] = cancelled[i];
+    }
+    inseye::c::kErrorDescription[i] = '\0';
     throw InitializationException(
         inseye::c::InseyeInitializationStatus::kCancelled);
   }

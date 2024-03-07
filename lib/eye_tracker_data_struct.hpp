@@ -21,27 +21,27 @@ typedef struct EyeTrackerDataStruct {
 #pragma pack(pop)
 
 inline void readDataSample(LPBYTE offsetedMemory, inseye::EyeTrackerDataStruct& dataStruct) {
-  using time_t = decltype(EyeTrackerDataStruct::time);
-  using pos_t = decltype(EyeTrackerDataStruct::left_eye_x);
+  using time_type = decltype(EyeTrackerDataStruct::time);
+  using pos_type = decltype(EyeTrackerDataStruct::left_eye_x);
   dataStruct.time =
-      read_swap_endianess_if_needed<time_t>(
-      reinterpret_cast<time_t*>(offsetedMemory + offsetof(
+      read_swap_endianess_if_needed<time_type>(
+      reinterpret_cast<time_type*>(offsetedMemory + offsetof(
                                                      EyeTrackerDataStruct, time)));
   dataStruct.left_eye_x =
-      read_swap_endianess_if_needed<pos_t>(
-      reinterpret_cast<pos_t*>(offsetedMemory + offsetof(
+      read_swap_endianess_if_needed<pos_type>(
+      reinterpret_cast<pos_type*>(offsetedMemory + offsetof(
                                                     EyeTrackerDataStruct, left_eye_x)));
   dataStruct.left_eye_y =
-      read_swap_endianess_if_needed<pos_t>(
-      reinterpret_cast<pos_t*>(offsetedMemory + offsetof(
+      read_swap_endianess_if_needed<pos_type>(
+      reinterpret_cast<pos_type*>(offsetedMemory + offsetof(
                                                     EyeTrackerDataStruct, left_eye_y)));
   dataStruct.right_eye_x =
-      read_swap_endianess_if_needed<pos_t>(
-      reinterpret_cast<pos_t*>(offsetedMemory + offsetof(
+      read_swap_endianess_if_needed<pos_type>(
+      reinterpret_cast<pos_type*>(offsetedMemory + offsetof(
                                                     EyeTrackerDataStruct, right_eye_x)));
   dataStruct.right_eye_y =
-      read_swap_endianess_if_needed<pos_t>(
-      reinterpret_cast<pos_t*>(offsetedMemory + offsetof(
+      read_swap_endianess_if_needed<pos_type>(
+      reinterpret_cast<pos_type*>(offsetedMemory + offsetof(
                                                     EyeTrackerDataStruct, right_eye_y)));
   auto read_value =
       read_swap_endianess_if_needed<uint32_t>(

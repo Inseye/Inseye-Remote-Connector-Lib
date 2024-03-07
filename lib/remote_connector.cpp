@@ -11,14 +11,14 @@
 #include "shared_memory_header.hpp"
 
 constexpr uint32_t UNREAD_SAMPLE_INDEX = 0;
-constexpr uint32_t UNWRITTEN_SAMPLE_INDEX = -1;
+constexpr uint32_t UNWRITTEN_SAMPLE_INDEX = (std::numeric_limits<uint32_t>::max)();
 using exc_msg = std::array<char, 1024>;
 static_assert(sizeof(enum inseye::c::InseyeGazeEvent) == sizeof(uint32_t),
               "Incompatible type size");
 static_assert((inseye::c::kInsGazeBlinkLeft ^ ((uint32_t)1)) == 0,
               "Incompatible binary layout");
 
-struct inseye::c::InseyeSharedMemoryEyeTrackerReader {
+struct inseye::c::InseyeEyeTracker {
   std::unique_ptr<void, std::function<void (void*)>> mapped_file_handle;
   std::unique_ptr<byte, std::function<void (void*)>> in_memory_buffer_pointer;
   uint32_t lastSampleIndex = UNREAD_SAMPLE_INDEX;
@@ -36,7 +36,7 @@ inline uint32_t CalculateEyeTrackerDataMemoryOffset(
 }
 
 bool TryReadNextDataSampleInternal(
-    inseye::c::InseyeSharedMemoryEyeTrackerReader&
+    inseye::c::InseyeEyeTracker&
         commonData,  // NOLINT(*-no-recursion)
     inseye::c::InseyeEyeTrackerDataStruct& dataStruct, int recursionCount) {
   constexpr int maxRecursionCount = 10;
@@ -78,7 +78,7 @@ bool TryReadNextDataSampleInternal(
 }
 
 bool TryReadLatestDataSampleInternal(
-    inseye::c::InseyeSharedMemoryEyeTrackerReader& implementation,
+    inseye::c::InseyeEyeTracker& implementation,
     inseye::c::InseyeEyeTrackerDataStruct& data_struct) {
   auto latest_written =
       implementation.shared_memory_header->ReadSamplesWrittenCount();
@@ -93,7 +93,7 @@ bool TryReadLatestDataSampleInternal(
  * \param pptr addres of pointer to which new instance can be assigned
  */
 
-void CreateEyeTrackerReaderInternal(inseye::c::InseyeSharedMemoryEyeTrackerReader** pptr,
+void CreateEyeTrackerReaderInternal(inseye::c::InseyeEyeTracker** pptr,
     const std::function<bool()>& is_cancellation_requested) {
   auto named_pipe_communicator =
       inseye::internal::NamedPipeCommunicator::Create(
@@ -129,7 +129,7 @@ void CreateEyeTrackerReaderInternal(inseye::c::InseyeSharedMemoryEyeTrackerReade
         inseye::c::InseyeInitializationStatus::kFailedToMapSharedResources);
   }
 
-  *pptr = new inseye::c::InseyeSharedMemoryEyeTrackerReader {
+  *pptr = new inseye::c::InseyeEyeTracker{
       std::move(memory_mapped_file),
       std::move(file_view),
       UNREAD_SAMPLE_INDEX, std::move(named_pipe_communicator),
@@ -173,19 +173,18 @@ std::ostream& operator<<(std::ostream& os, GazeEvent event) {
   return os;
 }
 
-inseye::SharedMemoryEyeTrackerReader::SharedMemoryEyeTrackerReader(
-    SharedMemoryEyeTrackerReader&& other) noexcept
-    : implementatation_pointer_(std::move(other.implementatation_pointer_)) {}
+inseye::EyeTracker::EyeTracker(EyeTracker&& other) noexcept
+    : implementation_pointer_(std::move(other.implementation_pointer_)) {}
 
-bool inseye::SharedMemoryEyeTrackerReader::TryReadLatestEyeTrackerData(
+bool inseye::EyeTracker::TryReadLatestEyeTrackerData(
     EyeTrackerDataStruct& eye_tracker_data_struct) noexcept {
-  return TryReadLatestDataSampleInternal(*implementatation_pointer_,
+  return TryReadLatestDataSampleInternal(*implementation_pointer_,
                                          eye_tracker_data_struct);
 }
 
-bool inseye::SharedMemoryEyeTrackerReader::TryReadNextEyeTrackerData(
+bool inseye::EyeTracker::TryReadNextEyeTrackerData(
     inseye::EyeTrackerDataStruct& eye_tracker_data_struct) noexcept {
-  return TryReadNextDataSampleInternal(*implementatation_pointer_,
+  return TryReadNextDataSampleInternal(*implementation_pointer_,
                                        eye_tracker_data_struct, 0);
 }
 
@@ -225,7 +224,7 @@ bool inseye::Version::operator<=(const inseye::Version& other) const {
 }
 
 inseye::c::InseyeInitializationStatus inseye::c::CreateEyeTrackerReader(
-    inseye::c::InseyeSharedMemoryEyeTrackerReader** pptr, uint32_t timeout_ms) {
+    inseye::c::InseyeEyeTracker** pptr, uint32_t timeout_ms) {
   try {
     CreateEyeTrackerReaderInternal(
         pptr, [start_time = std::chrono::system_clock::now(), timeout_ms]() {
@@ -253,7 +252,7 @@ inseye::c::InseyeInitializationStatus inseye::c::CreateEyeTrackerReader(
 }
 
 void inseye::c::DestroyEyeTrackerReader(
-    inseye::c::InseyeSharedMemoryEyeTrackerReader** pptr) {
+    inseye::c::InseyeEyeTracker** pptr) {
   if (pptr == nullptr)
     return;
   if (*pptr == nullptr)
@@ -263,7 +262,7 @@ void inseye::c::DestroyEyeTrackerReader(
 }
 
 bool inseye::c::TryReadNextEyeTrackerData(
-    inseye::c::InseyeSharedMemoryEyeTrackerReader* pImpl,
+    inseye::c::InseyeEyeTracker* pImpl,
     inseye::c::InseyeEyeTrackerDataStruct* pDataStruct) {
   if (pImpl == nullptr || pDataStruct == nullptr)
     return false;
@@ -271,7 +270,7 @@ bool inseye::c::TryReadNextEyeTrackerData(
 }
 
 bool inseye::c::TryReadLatestEyeTrackerData(
-    inseye::c::InseyeSharedMemoryEyeTrackerReader* implementation,
+    inseye::c::InseyeEyeTracker* implementation,
     inseye::c::InseyeEyeTrackerDataStruct* data_struct) {
   if (implementation == nullptr || data_struct == nullptr)
     return false;

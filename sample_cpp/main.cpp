@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 //    if (ver1 < ver2)
 //      std::cout << "Fail";
 
-    inseye::SharedMemoryEyeTrackerReader reader(-1);
+    inseye::EyeTracker reader(-1);
     inseye::EyeTrackerDataStruct eyeTrackerData;
     SetConsoleCtrlHandler(CtrlHandler, TRUE);
     while (run) {

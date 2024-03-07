@@ -10,6 +10,7 @@
 #include <functional>
 #include <string>
 #include <exception>
+#include <mutex>
 #include "remote_connector.h"
 namespace inseye::internal {
 
@@ -19,7 +20,7 @@ struct ServiceInfo {
   std::string shared_buffer_path;
 };
 
-class NamedPipeException : std::exception {
+class NamedPipeException : public std::exception {
  public:
   const std::string error_message;
   explicit NamedPipeException(const std::string &message) : error_message(message) {}

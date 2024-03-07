@@ -60,7 +60,7 @@ void print_data(struct InseyeEyeTrackerDataStruct*eye_tracker_data) {
 
 int main() {
   printf("max version %d.%d.%d\n", kHighestSupportedServiceVersion.major, kHighestSupportedServiceVersion.minor, kHighestSupportedServiceVersion.patch);
-  struct InseyeSharedMemoryEyeTrackerReader* reader_ptr = NULL;
+  struct InseyeEyeTracker* reader_ptr = NULL;
   enum InseyeInitializationStatus initStatus = CreateEyeTrackerReader(&reader_ptr, -1);
   if (initStatus != kSuccess)
   {

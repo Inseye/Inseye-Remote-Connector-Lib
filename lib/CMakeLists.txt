@@ -9,12 +9,15 @@ set(SOURCES
         named_pipe_communicator.cpp
         named_pipe_communicator.hpp
 )
-add_library(Remote_Connector_Dlib SHARED ${SOURCES})
+add_library(inseye_remote_connector_lib SHARED ${SOURCES})
+if(MSVC)
+    target_compile_options(inseye_remote_connector_lib PRIVATE /W4 /WX)
+else()
+    target_compile_options(inseye_remote_connector_lib PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif ()
 
 include(GenerateExportHeader)
-generate_export_header(Remote_Connector_Dlib)
 
-target_include_directories(Remote_Connector_Dlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-install(TARGETS Remote_Connector_Dlib DESTINATION Remote_Connector_Dlib-bin)
-install(FILES remote_connector.h DESTINATION Remote_Connector_Dlib-include)
+target_include_directories(inseye_remote_connector_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(inseye_remote_connector_lib PROPERTIES PUBLIC_HEADER remote_connector.h)
+install(TARGETS inseye_remote_connector_lib PUBLIC_HEADER DESTINATION include)

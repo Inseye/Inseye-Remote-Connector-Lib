@@ -5,11 +5,11 @@
 #define LIB_EXPORT /* NOTHING */
 #if defined(WIN32) || defined(WIN64)
 #undef LIB_EXPORT
-#if defined(Remote_Connector_Dlib_EXPORTS)
+#if defined(inseye_remote_connector_lib_EXPORTS)
 #define LIB_EXPORT __declspec(dllexport)
 #else
 #define LIB_EXPORT __declspec(dllimport)
-#endif  // defined(Remote_Connector_Dlib_EXPORTS)
+#endif  // defined(inseye_remote_connector_lib_EXPORTS)
 #endif  // defined(WIN32) || defined(WIN64)
 
 #if defined(__GNUC__) || defined(__APPLE__) || defined(LINUX)
@@ -90,7 +90,7 @@ namespace inseye::c {
    */
     kUnknown = kInsGazeHeadsetDismount << 1
   };
-  struct InseyeSharedMemoryEyeTrackerReader;
+  struct InseyeEyeTracker;
 
   struct InseyeVersion {
     const uint32_t major;
@@ -153,7 +153,7 @@ namespace inseye::c {
     enum InseyeGazeEvent gaze_event;
   };
 
-  struct InseyeSharedMemoryEyeTrackerReader;
+  struct InseyeEyeTracker;
 
   enum InseyeAsyncOperationState {
     kInsAsyncCreated = 0,
@@ -173,7 +173,7 @@ namespace inseye::c {
   * when function returns kSuccess.
   */
   LIB_EXPORT enum InseyeInitializationStatus CALL_CONV
-  CreateEyeTrackerReader(struct InseyeSharedMemoryEyeTrackerReader** pointer_address, uint32_t timeout_ms);
+  CreateEyeTrackerReader(struct InseyeEyeTracker** pointer_address, uint32_t timeout_ms);
   /**
   * @brief Frees all resources allocated during call to CreateEyeTrackerReader
   * and zeroes pointer.
@@ -181,7 +181,7 @@ namespace inseye::c {
   * CreateEyeTrackerReader
   */
   LIB_EXPORT void CALL_CONV
-  DestroyEyeTrackerReader(struct InseyeSharedMemoryEyeTrackerReader** pointer_address);
+  DestroyEyeTrackerReader(struct InseyeEyeTracker** pointer_address);
 
   /**
  * @brief Moves internal pointer to latest sample.
@@ -190,7 +190,7 @@ namespace inseye::c {
  * @return true when data was successfully read, otherwise false
  */
   LIB_EXPORT bool CALL_CONV TryReadNextEyeTrackerData(
-      struct InseyeSharedMemoryEyeTrackerReader*, struct InseyeEyeTrackerDataStruct*);
+      struct InseyeEyeTracker*, struct InseyeEyeTrackerDataStruct*);
 
   /**
  * @brief Checks if there is new data available since last read.
@@ -200,7 +200,7 @@ namespace inseye::c {
  * @return true when data was successfully read, otherwise false
  */
   LIB_EXPORT bool CALL_CONV TryReadLatestEyeTrackerData(
-      struct InseyeSharedMemoryEyeTrackerReader*, struct InseyeEyeTrackerDataStruct*);
+      struct InseyeEyeTracker*, struct InseyeEyeTrackerDataStruct*);
 #ifdef __cplusplus
   } // namespace inseye::c
 } // extern "C"
@@ -231,33 +231,31 @@ namespace inseye {
 
   std::ostream& operator<<(std::ostream& os, GazeEvent event);
 
-  class LIB_EXPORT SharedMemoryEyeTrackerReader final {
-    std::unique_ptr<
-        inseye::c::InseyeSharedMemoryEyeTrackerReader,
-        std::function<void(inseye::c::InseyeSharedMemoryEyeTrackerReader*)>>
-        implementatation_pointer_;
+  class LIB_EXPORT EyeTracker final {
+   private:
+        inseye::c::InseyeEyeTracker*
+        implementation_pointer_;
 
    public:
-    SharedMemoryEyeTrackerReader() = delete;
+    EyeTracker() = delete;
     /**
     * @brief Initializes eye tracker reader.
     */
-    explicit SharedMemoryEyeTrackerReader(int32_t timeout_ms) {
-      inseye::c::InseyeSharedMemoryEyeTrackerReader* ptr = nullptr;
+    explicit EyeTracker(int32_t timeout_ms) {
+      inseye::c::InseyeEyeTracker* ptr = nullptr;
       if (CreateEyeTrackerReader(&ptr, timeout_ms) != inseye::c::InseyeInitializationStatus::kSuccess) {
         throw std::runtime_error(inseye::c::kErrorDescription);
       }
-      static auto destructor = [](inseye::c::InseyeSharedMemoryEyeTrackerReader* p) {
-        inseye::c::DestroyEyeTrackerReader(&p);
-      };
-      implementatation_pointer_ =
-          std::unique_ptr<inseye::c::InseyeSharedMemoryEyeTrackerReader, decltype(destructor)>{
-              ptr, destructor};
+      implementation_pointer_ = ptr;
     }
 
-    SharedMemoryEyeTrackerReader(SharedMemoryEyeTrackerReader&) = delete;
+    ~EyeTracker() {
+      inseye::c::DestroyEyeTrackerReader(&implementation_pointer_);
+    }
 
-    SharedMemoryEyeTrackerReader(SharedMemoryEyeTrackerReader&&) noexcept;
+    EyeTracker(EyeTracker&) = delete;
+
+    EyeTracker(EyeTracker&&) noexcept;
     /**
    * @brief Moves internal pointer to latest sample.
    * Then if new data is available the data is read and copied to input param.
