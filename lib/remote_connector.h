@@ -48,6 +48,7 @@ namespace inseye::c {
     kFailedToAccessSharedResources,
     kFailedToMapSharedResources,
     kInsFailedToInitializeNamedPipe,
+    kInsAllServiceNamedPipesAreBusy,
     kInternalError,
     kServiceVersionToLow,
     kServiceVersionToHigh,
@@ -97,58 +98,58 @@ namespace inseye::c {
     const uint32_t minor;
     const uint32_t patch;
   };
-  extern char LIB_EXPORT kErrorDescription[1024];
+
   extern const LIB_EXPORT struct InseyeVersion kLowestSupportedServiceVersion;
   extern const LIB_EXPORT struct InseyeVersion kHighestSupportedServiceVersion;
 
   struct InseyeEyeTrackerDataStruct {
     /**
-   * @brief Data creation timestamp in milliseconds since Unix Epoch.
-   */
+     * @brief Data creation timestamp in milliseconds since Unix Epoch.
+     */
     uint64_t time;
     /**
-   * @brief Left eye horizontal angle position in radians.
-   * Angle is measurement of rotation between vector parallel to user left eye
-   * gaze direction and normal vector of device (headset) field of view and
-   * formed on plane horizontal to device (head) orientation.
-   * Value must be in range of (-half of device horizontal field of view, half
-   * of device horizontal field of view) where positive value represent rotation
-   * of user gaze to the right and negative value correspond to the gaze
-   * rotation to the left (from user PoV).
-   */
+     * @brief Left eye horizontal angle position in radians.
+     * Angle is measurement of rotation between vector parallel to user left eye
+     * gaze direction and normal vector of device (headset) field of view and
+     * formed on plane horizontal to device (head) orientation.
+     * Value must be in range of (-half of device horizontal field of view, half
+     * of device horizontal field of view) where positive value represent rotation
+     * of user gaze to the right and negative value correspond to the gaze
+     * rotation to the left (from user PoV).
+     */
     float left_eye_x;
     /**
-   * Left eye vertical angle position in radians.
-   * Angle is measurement of rotation between vector parallel to user left eye
-   * gaze direction and normal vector of device (headset) field of view and
-   * formed on plane vertical to device (head) orientation.
-   * Value must be in range of (-half of device vertical field of view, half of
-   * device vertical field of view) where positive value represent rotation of
-   * user gaze up and negative value correspond to the gaze down
-   * (from user PoV).
-   */
+     * Left eye vertical angle position in radians.
+     * Angle is measurement of rotation between vector parallel to user left eye
+     * gaze direction and normal vector of device (headset) field of view and
+     * formed on plane vertical to device (head) orientation.
+     * Value must be in range of (-half of device vertical field of view, half of
+     * device vertical field of view) where positive value represent rotation of
+     * user gaze up and negative value correspond to the gaze down
+     * (from user PoV).
+     */
     float left_eye_y;
     /**
-   * @brief Right eye horizontal angle position in radians.
-   * Angle is measurement of rotation between vector parallel to user right eye
-   * gaze direction and normal vector of device (headset) field of view and
-   * formed on plane horizontal to device (head) orientation.
-   * Value must be in range of (-half of device horizontal field of view, half
-   * of device horizontal field of view) where positive value represent rotation
-   * of user gaze to the right and negative value correspond to the gaze
-   * rotation to the left (from user PoV).
-   */
+     * @brief Right eye horizontal angle position in radians.
+     * Angle is measurement of rotation between vector parallel to user right eye
+     * gaze direction and normal vector of device (headset) field of view and
+     * formed on plane horizontal to device (head) orientation.
+     * Value must be in range of (-half of device horizontal field of view, half
+     * of device horizontal field of view) where positive value represent rotation
+     * of user gaze to the right and negative value correspond to the gaze
+     * rotation to the left (from user PoV).
+     */
     float right_eye_x;
     /**
-   * @brief Right eye vertical angle position in radians.
-   * Angle is measurement of rotation between vector parallel to user left eye
-   * gaze direction and normal vector of device (headset) field of view and
-   * formed on plane vertical to device (head) orientation.
-   * Value must be in range of (-half of device vertical field of view, half of
-   * device vertical field of view) where positive value represent rotation of
-   * user gaze up and negative value correspond to the gaze down
-   * (from user PoV).
-   */
+     * @brief Right eye vertical angle position in radians.
+     * Angle is measurement of rotation between vector parallel to user left eye
+     * gaze direction and normal vector of device (headset) field of view and
+     * formed on plane vertical to device (head) orientation.
+     * Value must be in range of (-half of device vertical field of view, half of
+     * device vertical field of view) where positive value represent rotation of
+     * user gaze up and negative value correspond to the gaze down
+     * (from user PoV).
+     */
     float right_eye_y;
     enum InseyeGazeEvent gaze_event;
   };
@@ -164,43 +165,74 @@ namespace inseye::c {
     kInsCompleted = 5
   };
   /**
-  * @brief Initializes eye tracker reader and writes memory location of
-  * SharedMemoryEyeTrackerReader to dereference pointer_address.
-  * @param pointer_address address of pointer which will hold information about created
-  * shared memory tracker reader memory
-  * @param timeout_ms maximum time the function can wait until aborts and returns unsuccessfully
-  * @returns Initialization status. Pointer at input address is only populated
-  * when function returns kSuccess.
-  */
+   * @brief Checks if desktop service is online and library can make attempt to connect to it.
+   * Call to this method doesn't check if the library and service are compatible.
+   * @return true if service is running on host machine
+   */
+  LIB_EXPORT bool CALL_CONV IsServiceAvailable();
+  /**
+    * @brief Initializes eye tracker reader and writes memory location of
+    * SharedMemoryEyeTrackerReader to dereference pointer_address.
+    * @param pointer_address address of pointer which will hold information about created
+    * shared memory tracker reader memory
+    * @param timeout_ms maximum time the function can wait until aborts and returns unsuccessfully
+    * @returns Initialization status. Pointer at input address is only populated
+    * when function returns kSuccess.
+    */
   LIB_EXPORT enum InseyeInitializationStatus CALL_CONV
   CreateEyeTrackerReader(struct InseyeEyeTracker** pointer_address, uint32_t timeout_ms);
   /**
-  * @brief Frees all resources allocated during call to CreateEyeTrackerReader
-  * and zeroes pointer.
-  * @param pointer_address address of pointer to memory allocated with
-  * CreateEyeTrackerReader
-  */
+    * @brief Frees all resources allocated during call to CreateEyeTrackerReader
+    * and zeroes pointer.
+    * @param pointer_address address of pointer to memory allocated with
+    * CreateEyeTrackerReader
+    */
   LIB_EXPORT void CALL_CONV
   DestroyEyeTrackerReader(struct InseyeEyeTracker** pointer_address);
-
   /**
- * @brief Moves internal pointer to latest sample.
- * Then if new data is available the data is read and copied to input param.
- * @param out_data output struct that will be changed on successful read.
- * @return true when data was successfully read, otherwise false
- */
+   * @brief Checks if there is unread gaze data available in buffer.
+   * @return true when unread data is in memory buffer
+   */
+  LIB_EXPORT bool CALL_CONV
+  IsGazeDataAvailable(struct InseyeEyeTracker*);
+  /**
+   * @brief Moves internal iterator to latest sample.
+   * Then if new data is available the data is read and copied to input param.
+   * @param out_data output struct that will be changed on successful read.
+   * @return true when data was successfully read, otherwise false
+   */
   LIB_EXPORT bool CALL_CONV TryReadNextEyeTrackerData(
       struct InseyeEyeTracker*, struct InseyeEyeTrackerDataStruct*);
 
   /**
- * @brief Checks if there is new data available since last read.
- * Then if new data is available advances internal pointer by one, reads the
- * and the copies to out_data.
- * @param out_data output struct that will be changed on successful read.
- * @return true when data was successfully read, otherwise false
- */
+   * @brief Checks if there is new data available since last read.
+   * Then if new data is available advances internal iterator by one, reads the
+   * and the copies to out_data.
+   * @param out_data output struct that will be changed on successful read.
+   * @return true when data was successfully read, otherwise false
+   */
   LIB_EXPORT bool CALL_CONV TryReadLatestEyeTrackerData(
       struct InseyeEyeTracker*, struct InseyeEyeTrackerDataStruct*);
+  /**
+   * @brief Reads eye tracker data stored at current internal iterator position
+   * (previously returned with TryReadNextEyeTrackerData or
+   * TryReadLatestEyeTrackerData).
+   * This function doesn't change internal iterator position.
+   * Multiple calls to this function return the same value until internal
+   * iterator is not modified with TryReadNextEyeTrackerData,
+   * TryReadCurrentEyeTrackerData or until internal buffer is overwritten with
+   * new value.
+   * @return true when data was successfully read, otherwise false
+   */
+  LIB_EXPORT bool CALL_CONV TryReadLastEyeTrackerData(
+      struct InseyeEyeTracker*, struct InseyeEyeTrackerDataStruct*);
+  /**
+   * @brief Returns last error description. It's thread local null terminated
+   * ANSI string up to 1024 bytes length.
+   * Do not free memory returned from this function.
+   * @return Address of first string character.
+   */
+  LIB_EXPORT char* CALL_CONV GetLastErrorDescription();
 #ifdef __cplusplus
   } // namespace inseye::c
 } // extern "C"
@@ -244,33 +276,49 @@ namespace inseye {
     explicit EyeTracker(int32_t timeout_ms) {
       inseye::c::InseyeEyeTracker* ptr = nullptr;
       if (CreateEyeTrackerReader(&ptr, timeout_ms) != inseye::c::InseyeInitializationStatus::kSuccess) {
-        throw std::runtime_error(inseye::c::kErrorDescription);
+        throw std::runtime_error(inseye::c::GetLastErrorDescription());
       }
       implementation_pointer_ = ptr;
-    }
-
-    ~EyeTracker() {
-      inseye::c::DestroyEyeTrackerReader(&implementation_pointer_);
     }
 
     EyeTracker(EyeTracker&) = delete;
 
     EyeTracker(EyeTracker&&) noexcept;
+
+    ~EyeTracker() noexcept;
+
     /**
-   * @brief Moves internal pointer to latest sample.
-   * Then if new data is available the data is read and copied to input param.
-   * @param out_data output struct that will be changed on successful read.
-   * @return true when data was successfully read, otherwise false
-   */
+     * @brief Checks if there is unread gaze data available for read.
+     * @return true when there is unread gaze data available
+     */
+    [[nodiscard]] bool IsGazeDataAvailable() const noexcept;
+    /**
+     * @brief Moves internal pointer to latest sample.
+     * Then if new data is available the data is read and copied to input param.
+     * @param out_data output struct that will be changed on successful read.
+     * @return true when data was successfully read, otherwise false
+     */
     bool TryReadLatestEyeTrackerData(EyeTrackerDataStruct& out_data) noexcept;
     /**
-   * @brief Checks if there is new data available since last read.
-   * Then if new data is available advances internal pointer by one, reads the
-   * and the copies to out_data.
-   * @param out_data output struct that will be changed on successful read.
-   * @return true when data was successfully read, otherwise false
-   */
+     * @brief Checks if there is new data available since last read.
+     * Then if new data is available advances internal pointer by one, reads the
+     * and the copies to out_data.
+     * @param out_data output struct that will be changed on successful read.
+     * @return true when data was successfully read, otherwise false
+     */
     bool TryReadNextEyeTrackerData(EyeTrackerDataStruct& out_data) noexcept;
+    /**
+     * @brief Reads eye tracker data stored at current internal iterator position
+     * (previously returned with TryReadNextEyeTrackerData or
+     * TryReadLatestEyeTrackerData).
+     * This function doesn't change internal iterator position.
+     * Multiple calls to this function return the same value until internal
+     * iterator is not modified with TryReadNextEyeTrackerData,
+     * TryReadCurrentEyeTrackerData or until internal buffer is overwritten with
+     * new value.
+     * @return true when data was successfully read, otherwise false
+     */
+    bool TryReadLastEyeTrackerData(EyeTrackerDataStruct& out_data) const noexcept;
   };
 } // namespace inseye
 #undef CALL_CONV

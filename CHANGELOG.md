@@ -9,7 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- new sample project in `c` programming language 
+- new functions in api that read last eye tracking data without modifying internal iterator
+  + `TryReadLastEyeTrackerData` for `c`
+  + `inseye::EyeTracker::TryReadLastEyeTrackerData` for `c++`
+
+- new functions in api that query if gaze data can be read
+  + `IsGazeDataAvailable` for `c`
+  + `inseye::EyeTracker::IsGazeDataAvailable` for `c++`
+
+- new function `GetLastErrorDescripton` that allows retrieving error description when library fail to create eye tracker 
+
+- new function in api to query if desktop service is available `IsServiceAvailable`
+
+- new sample project in `c` programming language
+
+### Changed
+
+- warnings and pedantic treated as compilation errors
 
 ### Removed
 

@@ -2,13 +2,13 @@
 // Created by Mateusz on 08.02.2024.
 //
 
+#include "shared_memory_header.hpp"
+#include <windows.h>
 #include <sstream>
 #include <utility>
-#include <windows.h>
-#include "remote_connector.h"
-#include "exceptions.hpp"
-#include "shared_memory_header.hpp"
 #include "endianess_helpers.hpp"
+#include "errors.hpp"
+#include "remote_connector.h"
 #include "version.hpp"
 
 using namespace inseye::internal;
@@ -136,7 +136,8 @@ SharedMemoryHeader* inseye::internal::ReadHeaderInternal(
     ss << "Library doesn't support service in version: " << headerVersion <<
         "lowest supported version is: " <<
         inseye::lowestSupportedServiceVersion;
-    throw_initialization(ss.str(), inseye::c::InseyeInitializationStatus::kServiceVersionToLow);
+    ThrowInitialization(
+        ss.str(), inseye::c::InseyeInitializationStatus::kServiceVersionToLow);
   }
   if (headerVersion < SharedMemoryHeaderV1::minimumVersion && headerVersion >=
       SharedMemoryHeaderV1::maximumVersion) {
@@ -144,7 +145,8 @@ SharedMemoryHeader* inseye::internal::ReadHeaderInternal(
     ss << "Library doesn't support service in version: " << headerVersion <<
         ", highest  supported version is: " <<
         inseye::highestSupportedServiceVersion;
-    throw_initialization(ss.str(), inseye::c::InseyeInitializationStatus::kServiceVersionToHigh);
+    ThrowInitialization(
+        ss.str(), inseye::c::InseyeInitializationStatus::kServiceVersionToHigh);
   }
   return reinterpret_cast<SharedMemoryHeader*>(createSharedMemoryHeaderV1(share_file_handle, headerVersion));
 }

@@ -5,13 +5,15 @@
 #include <format>
 #include <thread>
 
-#include "exceptions.hpp"
+#include "errors.hpp"
 #include "eye_tracker_data_struct.hpp"
 #include "named_pipe_communicator.hpp"
 #include "shared_memory_header.hpp"
 
+
 constexpr uint32_t UNREAD_SAMPLE_INDEX = 0;
-constexpr uint32_t UNWRITTEN_SAMPLE_INDEX = (std::numeric_limits<uint32_t>::max)();
+constexpr uint32_t UNWRITTEN_SAMPLE_INDEX =
+    (std::numeric_limits<uint32_t>::max)();
 using exc_msg = std::array<char, 1024>;
 static_assert(sizeof(enum inseye::c::InseyeGazeEvent) == sizeof(uint32_t),
               "Incompatible type size");
@@ -19,8 +21,8 @@ static_assert((inseye::c::kInsGazeBlinkLeft ^ ((uint32_t)1)) == 0,
               "Incompatible binary layout");
 
 struct inseye::c::InseyeEyeTracker {
-  std::unique_ptr<void, std::function<void (void*)>> mapped_file_handle;
-  std::unique_ptr<byte, std::function<void (void*)>> in_memory_buffer_pointer;
+  std::unique_ptr<void, std::function<void(void*)>> mapped_file_handle;
+  std::unique_ptr<byte, std::function<void(void*)>> in_memory_buffer_pointer;
   uint32_t lastSampleIndex = UNREAD_SAMPLE_INDEX;
   inseye::internal::NamedPipeCommunicator named_pipe_communicator;
   std::unique_ptr<inseye::internal::SharedMemoryHeader> shared_memory_header =
@@ -35,9 +37,21 @@ inline uint32_t CalculateEyeTrackerDataMemoryOffset(
   return headerSize + single_eye_tracker_sample_size * wholes;
 }
 
+inline void ReadDataSampleInternal(const inseye::c::InseyeEyeTracker& commonData, inseye::c::InseyeEyeTrackerDataStruct& data_struct) {
+  const uint32_t sampleSize =
+      commonData.shared_memory_header->GetDataSampleSize();
+  auto offset = CalculateEyeTrackerDataMemoryOffset(
+      commonData.shared_memory_header->GetHeaderSize(), sampleSize,
+      commonData.lastSampleIndex,
+      commonData.shared_memory_header->GetSampleCount());
+  assert(offset + sampleSize <=
+         commonData.shared_memory_header->GetBufferSize());
+  inseye::internal::readDataSample(
+      commonData.in_memory_buffer_pointer.get() + offset, data_struct);
+}
+
 bool TryReadNextDataSampleInternal(
-    inseye::c::InseyeEyeTracker&
-        commonData,  // NOLINT(*-no-recursion)
+    inseye::c::InseyeEyeTracker& commonData,  // NOLINT(*-no-recursion)
     inseye::c::InseyeEyeTrackerDataStruct& dataStruct, int recursionCount) {
   constexpr int maxRecursionCount = 10;
   if (recursionCount > maxRecursionCount)
@@ -57,22 +71,13 @@ bool TryReadNextDataSampleInternal(
     commonData.lastSampleIndex = currentDataSample - total_samples_in_buffer;
   }
   commonData.lastSampleIndex++;
-  const uint32_t sampleSize =
-      commonData.shared_memory_header->GetDataSampleSize();
-  auto offset = CalculateEyeTrackerDataMemoryOffset(
-      commonData.shared_memory_header->GetHeaderSize(), sampleSize,
-      commonData.lastSampleIndex,
-      commonData.shared_memory_header->GetSampleCount());
-  assert(offset + sampleSize <=
-                commonData.shared_memory_header->GetBufferSize());
-  inseye::internal::readDataSample(commonData.in_memory_buffer_pointer.get() + offset,
-                                   dataStruct);
+  ReadDataSampleInternal(commonData, dataStruct);
   // check post read if data just read was not overwritten
   if (commonData.shared_memory_header->ReadSamplesWrittenCount() -
           commonData.lastSampleIndex >
       total_samples_in_buffer) {
     return TryReadNextDataSampleInternal(commonData, dataStruct,
-                                         recursionCount++);
+                                         ++recursionCount);
   }
   return true;
 }
@@ -93,7 +98,8 @@ bool TryReadLatestDataSampleInternal(
  * \param pptr addres of pointer to which new instance can be assigned
  */
 
-void CreateEyeTrackerReaderInternal(inseye::c::InseyeEyeTracker** pptr,
+void CreateEyeTrackerReaderInternal(
+    inseye::c::InseyeEyeTracker** pptr,
     const std::function<bool()>& is_cancellation_requested) {
   auto named_pipe_communicator =
       inseye::internal::NamedPipeCommunicator::Create(
@@ -101,39 +107,33 @@ void CreateEyeTrackerReaderInternal(inseye::c::InseyeEyeTracker** pptr,
   ThrowIfCancellationRequested(is_cancellation_requested);
   auto serviceInfo = named_pipe_communicator.GetServiceInfo();
 
-  std::unique_ptr<void, std::function<void (void*)>> memory_mapped_file {
+  std::unique_ptr<void, std::function<void(void*)>> memory_mapped_file{
       OpenFileMapping(FILE_MAP_READ,  // use paging file
                       FALSE, serviceInfo.shared_buffer_path.c_str()),
-        CloseHandle
-  };
+      CloseHandle};
   if (memory_mapped_file == nullptr) {
-    throw_initialization(
+    ThrowInitialization(
         std::format("Could not open file mapping object, GLE={}.\n",
                     GetLastError()),
         inseye::c::InseyeInitializationStatus::kFailedToAccessSharedResources);
   }
-  std::unique_ptr<inseye::internal::SharedMemoryHeader> shared_memory_header {
-      inseye::internal::ReadHeaderInternal(memory_mapped_file.get())
-  };
-  std::unique_ptr<byte, std::function<void (void*)>> file_view {
-      (byte*) MapViewOfFile(memory_mapped_file.get(),  // handle to map object
-                  FILE_MAP_READ,               // read/write permission
-                  0, 0, shared_memory_header->GetBufferSize()),
-      UnmapViewOfFile
-  };
-
+  std::unique_ptr<inseye::internal::SharedMemoryHeader> shared_memory_header{
+      inseye::internal::ReadHeaderInternal(memory_mapped_file.get())};
+  std::unique_ptr<byte, std::function<void(void*)>> file_view{
+      (byte*)MapViewOfFile(memory_mapped_file.get(),  // handle to map object
+                           FILE_MAP_READ,             // read/write permission
+                           0, 0, shared_memory_header->GetBufferSize()),
+      UnmapViewOfFile};
 
   if (file_view == nullptr) {
-    throw_initialization(
+    ThrowInitialization(
         std::format("Could not map view of file ({}).", GetLastError()),
         inseye::c::InseyeInitializationStatus::kFailedToMapSharedResources);
   }
 
   *pptr = new inseye::c::InseyeEyeTracker{
-      std::move(memory_mapped_file),
-      std::move(file_view),
-      UNREAD_SAMPLE_INDEX, std::move(named_pipe_communicator),
-      std::move(shared_memory_header)};
+      std::move(memory_mapped_file), std::move(file_view), UNREAD_SAMPLE_INDEX,
+      std::move(named_pipe_communicator), std::move(shared_memory_header)};
 }
 namespace inseye {
 std::ostream& operator<<(std::ostream& os, const inseye::Version& p) {
@@ -174,7 +174,17 @@ std::ostream& operator<<(std::ostream& os, GazeEvent event) {
 }
 
 inseye::EyeTracker::EyeTracker(EyeTracker&& other) noexcept
-    : implementation_pointer_(std::move(other.implementation_pointer_)) {}
+    : implementation_pointer_(other.implementation_pointer_) {
+  other.implementation_pointer_ = nullptr;
+}
+
+inseye::EyeTracker::~EyeTracker() noexcept {
+  inseye::c::DestroyEyeTrackerReader(&implementation_pointer_);
+}
+
+bool inseye::EyeTracker::IsGazeDataAvailable() const noexcept {
+  return inseye::c::IsGazeDataAvailable(implementation_pointer_);
+}
 
 bool inseye::EyeTracker::TryReadLatestEyeTrackerData(
     EyeTrackerDataStruct& eye_tracker_data_struct) noexcept {
@@ -186,6 +196,10 @@ bool inseye::EyeTracker::TryReadNextEyeTrackerData(
     inseye::EyeTrackerDataStruct& eye_tracker_data_struct) noexcept {
   return TryReadNextDataSampleInternal(*implementation_pointer_,
                                        eye_tracker_data_struct, 0);
+}
+
+bool inseye::EyeTracker::TryReadLastEyeTrackerData(inseye::EyeTrackerDataStruct& out_data) const noexcept {
+  return inseye::c::TryReadLastEyeTrackerData(implementation_pointer_, &out_data);
 }
 
 bool inseye::Version::operator==(const inseye::Version& other) const {
@@ -238,27 +252,30 @@ inseye::c::InseyeInitializationStatus inseye::c::CreateEyeTrackerReader(
     return inseye::c::InseyeInitializationStatus::kSuccess;
   } catch (const InitializationException& initializationException) {
     return initializationException.status;
-  }
-  catch (const inseye::internal::NamedPipeException &named_pipe_exception) {
-    auto length = named_pipe_exception.error_message.length();
-    if (named_pipe_exception.error_message.length() >= 1024) {
-      length = 1023;
-    }
-    for (int i = 0; i < length; ++i) {
-      inseye::c::kErrorDescription[i] = named_pipe_exception.error_message[i];
-    }
+  } catch (const inseye::internal::NamedPipeException& named_pipe_exception) {
+    WriteErrorMessage(named_pipe_exception.error_message);
     return inseye::c::kInsFailedToInitializeNamedPipe;
   }
 }
 
-void inseye::c::DestroyEyeTrackerReader(
-    inseye::c::InseyeEyeTracker** pptr) {
+void inseye::c::DestroyEyeTrackerReader(inseye::c::InseyeEyeTracker** pptr) {
   if (pptr == nullptr)
     return;
   if (*pptr == nullptr)
     return;
   delete *pptr;
   *pptr = nullptr;
+}
+
+bool inseye::c::IsGazeDataAvailable(
+    struct inseye::c::InseyeEyeTracker* pointer) {
+  if (pointer == nullptr)
+    return false;
+  auto samples_written_count = pointer->shared_memory_header->ReadSamplesWrittenCount();
+  if (samples_written_count == UNWRITTEN_SAMPLE_INDEX)
+    return false;  // service has not written any data to shared memory
+  return pointer->shared_memory_header->ReadSamplesWrittenCount() >
+         pointer->lastSampleIndex;
 }
 
 bool inseye::c::TryReadNextEyeTrackerData(
@@ -279,6 +296,24 @@ bool inseye::c::TryReadLatestEyeTrackerData(
   implementation->lastSampleIndex =
       (std::max)(implementation->lastSampleIndex, latest_written - 1);
   return TryReadNextDataSampleInternal(*implementation, *data_struct, 0);
+}
+
+bool inseye::c::TryReadLastEyeTrackerData(
+    struct inseye::c::InseyeEyeTracker* implementation,
+    struct inseye::c::InseyeEyeTrackerDataStruct* data_struct) {
+  if (implementation == nullptr || data_struct == nullptr)
+    return false;
+  auto header = implementation->shared_memory_header.get();
+  auto latest_written = header->ReadSamplesWrittenCount();
+  auto latest_read = implementation->lastSampleIndex;
+  auto samples = header->GetSampleCount();
+  if ((latest_written - latest_read) > samples)
+    return false;
+  ReadDataSampleInternal(*implementation, *data_struct);
+  latest_written = header->ReadSamplesWrittenCount();
+  if ((latest_written - latest_read) > samples)
+    return false; // check if what we read was not overwritten
+  return true;
 }
 
 }  // namespace inseye

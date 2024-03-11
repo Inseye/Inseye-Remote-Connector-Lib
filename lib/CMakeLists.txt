@@ -8,6 +8,7 @@ set(SOURCES
         eye_tracker_data_struct.hpp
         named_pipe_communicator.cpp
         named_pipe_communicator.hpp
+        errors.cpp
 )
 add_library(inseye_remote_connector_lib SHARED ${SOURCES})
 if(MSVC)

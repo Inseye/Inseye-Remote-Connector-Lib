@@ -64,7 +64,7 @@ int main() {
   enum InseyeInitializationStatus initStatus = CreateEyeTrackerReader(&reader_ptr, -1);
   if (initStatus != kSuccess)
   {
-    printf("Failed to initialize eye tracker reader %u\n%s", initStatus, kErrorDescription);
+    printf("Failed to initialize eye tracker reader %u\n%s", initStatus, GetLastErrorDescription());
     return 1;
   }
   printf("Reader successfully initialized.\n");

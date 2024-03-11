@@ -4,6 +4,7 @@
 
 #ifndef SHARED_MEMORY_HEADER_HPP
 #define SHARED_MEMORY_HEADER_HPP
+#include "windows.h"
 #include "remote_connector.h"
 
 namespace inseye::internal {
