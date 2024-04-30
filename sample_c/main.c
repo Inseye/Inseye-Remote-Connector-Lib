@@ -1,3 +1,11 @@
+// Last edit: 30.04.24 10:16 by Mateusz Chojnowski mateusz.chojnowski@inseye.com
+//
+// Copyright (c) Inseye Inc. 2024.
+//
+// This file is part of Inseye Software Development Kit subject to Inseye SDK License
+// See  https://github.com/Inseye/Licenses/blob/master/SDKLicense.txt.
+// All other rights reserved.
+
 #include <stdio.h>
 #include <Windows.h>
 #include "remote_connector.h"

@@ -1,6 +1,10 @@
+// Last edit: 30.04.24 11:03 by Mateusz Chojnowski mateusz.chojnowski@inseye.com
 //
-// Created by Mateusz on 27.02.2024.
+// Copyright (c) Inseye Inc. 2024.
 //
+// This file is part of Inseye Software Development Kit subject to Inseye SDK License
+// See  https://github.com/Inseye/Licenses/blob/master/SDKLicense.txt.
+// All other rights reserved.
 
 #include "named_pipe_communicator.hpp"
 #include <windows.h>
