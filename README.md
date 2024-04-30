@@ -27,3 +27,8 @@ then:
 
 ` cmake --build .\cmake-b-release\ --target sample_cpp`
 
+## The library
+
+The library builds into single .dll/.lib file. There is single header required to include - [remote_connector.h](./lib/remote_connector.h).
+The library connects to [Inseye-Remote-Connector-Desktop](https://github.com/Inseye/Inseye-Remote-Connector-Desktop) running on the same machine and consumes gaze data from it.
+
